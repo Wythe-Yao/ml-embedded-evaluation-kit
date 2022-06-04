@@ -39,7 +39,7 @@ static int show_title(void)
     lcd_set_text_color(White);
 
     /* First line */
-    snprintf(title, sizeof(title), "Arm ML embedded code samples");
+    snprintf(title, sizeof(title), "EC100N");
 
     if (0 != (status = lcd_display_text(
             title, strlen(title), 10, 0, false))) {

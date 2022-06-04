@@ -20,7 +20,7 @@ set(SCRIPTS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/scripts)
 # This function generates C++ files for images located in the directory it is
 # pointed at. NOTE: uses python
 ##############################################################################
-function(generate_images_code input_dir src_out hdr_out img_size)
+function(generate_images_code input_dir src_out hdr_out img_size_width img_size_heigth)
 
     # Absolute paths for passing into python script
     get_filename_component(input_dir_abs ${input_dir} ABSOLUTE)
@@ -33,7 +33,7 @@ function(generate_images_code input_dir src_out hdr_out img_size)
         --image_path ${input_dir_abs}
         --source_folder_path ${src_out_abs}
         --header_folder_path ${hdr_out_abs}
-        --image_size ${img_size} ${img_size}
+        --image_size ${img_size_width} ${img_size_heigth}
         RESULT_VARIABLE return_code
     )
     if (NOT return_code EQUAL "0")

@@ -31,17 +31,19 @@ namespace object_detection {
     struct PostProcessParams {
         int inputImgRows{};
         int inputImgCols{};
-        int originalImageSize{};
+        int originalImageSizeWidth{};
+        int originalImageSizeHeight{};
         const float* anchor1;
         const float* anchor2;
-        float threshold = 0.5f;
+        float threshold = 0.9f;
         float nms = 0.45f;
-        int numClasses = 1;
+        int numClasses = 6;
         int topN = 0;
     };
 
     struct Branch {
-        int resolution;
+        int colResolution;
+        int rowResolution;
         int numBox;
         const float* anchor;
         int8_t* modelOutput;
@@ -71,11 +73,13 @@ namespace object_detection {
          * @brief        Constructor.
          * @param[in]    outputTensor0       Pointer to the TFLite Micro output Tensor at index 0.
          * @param[in]    outputTensor1       Pointer to the TFLite Micro output Tensor at index 1.
+         * @param[in]    labels              List of labels.
          * @param[out]   results             Vector of detected results.
          * @param[in]    postProcessParams   Struct of various parameters used in post-processing.
          **/
         explicit DetectorPostProcess(TfLiteTensor* outputTensor0,
                                      TfLiteTensor* outputTensor1,
+                                     const std::vector<std::string>& labels,
                                      std::vector<object_detection::DetectionResult>& results,
                                      const object_detection::PostProcessParams& postProcessParams);
 
@@ -89,6 +93,7 @@ namespace object_detection {
     private:
         TfLiteTensor* m_outputTensor0;                                   /* Output tensor index 0 */
         TfLiteTensor* m_outputTensor1;                                   /* Output tensor index 1 */
+        const std::vector<std::string>& m_labels;                        /* List of labels */
         std::vector<object_detection::DetectionResult>& m_results;       /* Single inference results. */
         const object_detection::PostProcessParams& m_postProcessParams;  /* Post processing param struct. */
         object_detection::Network m_net;                                 /* YOLO network object. */

@@ -75,7 +75,10 @@ def write_individual_img_cc_file(image_filename, cc_filename, header_template_fi
     ifm_height = image_size[1]
 
     # Aspect ratio resize
-    scale_ratio = (float)(max(ifm_width, ifm_height)) / (float)(min(original_image.size[0], original_image.size[1]))
+    scale_ratio_width = (float)(ifm_width) / (float)(original_image.size[0])
+    scale_ratio_height = (float)(ifm_height) / (float)(original_image.size[1])
+    scale_ratio = max(scale_ratio_width, scale_ratio_height)
+
     resized_width = (int)(original_image.size[0] * scale_ratio)
     resized_height = (int)(original_image.size[1] * scale_ratio)
     resized_image = original_image.resize([resized_width,resized_height], Image.BILINEAR)

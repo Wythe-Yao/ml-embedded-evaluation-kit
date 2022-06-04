@@ -30,6 +30,7 @@
 constexpr uint16_t COLOR_BLACK  = 0;
 constexpr uint16_t COLOR_GREEN  = RGB888_TO_RGB565(  0, 255,  0); // 2016;
 constexpr uint16_t COLOR_YELLOW = RGB888_TO_RGB565(255, 255,  0); // 65504;
+constexpr uint16_t COLOR_RED    = RGB888_TO_RGB565(255,   0,  0);
 
 
 namespace arm {

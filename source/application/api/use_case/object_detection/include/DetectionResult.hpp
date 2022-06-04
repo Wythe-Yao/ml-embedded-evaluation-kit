@@ -17,6 +17,7 @@
 #ifndef DETECTION_RESULT_HPP
 #define DETECTION_RESULT_HPP
 
+#include <string>
 
 namespace arm {
 namespace app {
@@ -29,13 +30,17 @@ namespace object_detection {
     public:
         /**
          * @brief       Constructor
+         * @param[in]   labelIdx        Index of label
+         * @param[in]   labelStr        Label string
          * @param[in]   normalisedVal   Result normalized value
          * @param[in]   x0              Top corner x starting point
          * @param[in]   y0              Top corner y starting point
          * @param[in]   w               Detection result width
          * @param[in]   h               Detection result height
          **/
-        DetectionResult(double normalisedVal,int x0,int y0, int w,int h) :
+        DetectionResult(uint32_t labelIdx, std::string labelStr, double normalisedVal,int x0,int y0, int w,int h) :
+                m_labelIdx(labelIdx),
+                m_labelStr(labelStr),
                 m_normalisedVal(normalisedVal),
                 m_x0(x0),
                 m_y0(y0),
@@ -47,6 +52,8 @@ namespace object_detection {
         DetectionResult() = default;
         ~DetectionResult() = default;
 
+        uint32_t    m_labelIdx;
+        std::string m_labelStr;
         double  m_normalisedVal{0.0};
         int     m_x0{0};
         int     m_y0{0};

@@ -16,6 +16,7 @@
  */
 #include "hal.h"                      /* Brings in platform definitions. */
 #include "InputFiles.hpp"             /* For input images. */
+#include "Labels.hpp"                 /* For label strings. */
 #include "YoloFastestModel.hpp"       /* Model class for running inference. */
 #include "UseCaseHandler.hpp"         /* Handlers for different user options. */
 #include "UseCaseCommonUtils.hpp"     /* Utils functions. */
@@ -67,6 +68,10 @@ void main_loop()
     caseContext.Set<arm::app::Model&>("model", model);
     caseContext.Set<uint32_t>("imgIndex", 0);
 
+    std::vector<std::string> labels;
+    GetLabelsVector(labels);
+    caseContext.Set<const std::vector <std::string>&>("labels", labels);
+    
     /* Loop. */
     bool executionSuccessful = true;
     constexpr bool bUseMenu = NUMBER_OF_FILES > 1 ? true : false;

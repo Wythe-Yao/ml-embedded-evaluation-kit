@@ -22,7 +22,8 @@
 namespace arm {
 namespace app {
     namespace object_detection {
-        extern const int originalImageSize;
+        extern const int originalImageSizeWidth;
+        extern const int originalImageSizeHeight;
         extern const int channelsImageDisplayed;
         /* NOTE: anchors are different for any given input model size, estimated during training
          * phase */

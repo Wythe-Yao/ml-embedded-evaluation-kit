@@ -25,10 +25,12 @@ namespace app {
     DetectorPostProcess::DetectorPostProcess(
         TfLiteTensor* modelOutput0,
         TfLiteTensor* modelOutput1,
+        const std::vector<std::string>& labels,
         std::vector<object_detection::DetectionResult>& results,
         const object_detection::PostProcessParams& postProcessParams)
         :   m_outputTensor0{modelOutput0},
             m_outputTensor1{modelOutput1},
+            m_labels{labels},
             m_results{results},
             m_postProcessParams{postProcessParams}
 {
@@ -38,7 +40,8 @@ namespace app {
         .inputHeight = postProcessParams.inputImgRows,
         .numClasses  = postProcessParams.numClasses,
         .branches =
-            {object_detection::Branch{.resolution  = postProcessParams.inputImgCols / 32,
+            {object_detection::Branch{.colResolution = postProcessParams.inputImgCols / 16,
+                                      .rowResolution = postProcessParams.inputImgRows / 16,
                                       .numBox      = 3,
                                       .anchor      = postProcessParams.anchor1,
                                       .modelOutput = this->m_outputTensor0->data.int8,
@@ -49,7 +52,8 @@ namespace app {
                                                         this->m_outputTensor0->quantization.params))
                                                        ->zero_point->data[0],
                                       .size = this->m_outputTensor0->bytes},
-             object_detection::Branch{.resolution  = postProcessParams.inputImgCols / 16,
+             object_detection::Branch{.colResolution = postProcessParams.inputImgCols / 32,
+                                      .rowResolution = postProcessParams.inputImgRows / 32,
                                       .numBox      = 3,
                                       .anchor      = postProcessParams.anchor2,
                                       .modelOutput = this->m_outputTensor1->data.int8,
@@ -67,8 +71,8 @@ namespace app {
 bool DetectorPostProcess::DoPostProcess()
 {
     /* Start postprocessing */
-    int originalImageWidth  = m_postProcessParams.originalImageSize;
-    int originalImageHeight = m_postProcessParams.originalImageSize;
+    int originalImageWidth  = m_postProcessParams.originalImageSizeWidth;
+    int originalImageHeight = m_postProcessParams.originalImageSizeHeight;
 
     std::forward_list<image::Detection> detections;
     GetNetworkBoxes(this->m_net, originalImageWidth, originalImageHeight, m_postProcessParams.threshold, detections);
@@ -104,6 +108,8 @@ bool DetectorPostProcess::DoPostProcess()
             if (it.prob[j] > 0) {
 
                 object_detection::DetectionResult tmpResult = {};
+                tmpResult.m_labelIdx = j;
+                tmpResult.m_labelStr = this->m_labels[j];
                 tmpResult.m_normalisedVal = it.prob[j];
                 tmpResult.m_x0 = boxX;
                 tmpResult.m_y0 = boxY;
@@ -145,12 +151,12 @@ void DetectorPostProcess::GetNetworkBoxes(
         return pa.objectness < pb.objectness;
     };
     for (size_t i = 0; i < net.branches.size(); ++i) {
-        int height   = net.branches[i].resolution;
-        int width    = net.branches[i].resolution;
+        int height   = net.branches[i].rowResolution;
+        int width    = net.branches[i].colResolution;
         int channel  = net.branches[i].numBox*(5+numClasses);
-
-        for (int h = 0; h < net.branches[i].resolution; h++) {
-            for (int w = 0; w < net.branches[i].resolution; w++) {
+        
+        for (int h = 0; h < net.branches[i].rowResolution; h++) {
+            for (int w = 0; w < net.branches[i].colResolution; w++) {
                 for (int anc = 0; anc < net.branches[i].numBox; anc++) {
 
                     /* Objectness score */

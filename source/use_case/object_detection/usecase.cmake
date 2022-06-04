@@ -21,16 +21,24 @@ USER_OPTION(${use_case}_FILE_PATH "Directory with custom image files to use, or 
     ${CMAKE_CURRENT_SOURCE_DIR}/resources/${use_case}/samples/
     PATH_OR_FILE)
 
-USER_OPTION(${use_case}_IMAGE_SIZE "Square image size in pixels. Images will be resized to this size."
-    192
+USER_OPTION(${use_case}_IMAGE_SIZE_WIDTH "Image width in pixels. Images will be resized to this size."
+    320
     STRING)
 
+USER_OPTION(${use_case}_IMAGE_SIZE_HEIGHT "Image height in pixels. Images will be resized to this size."
+    384
+    STRING)
+
+USER_OPTION(${use_case}_LABELS_TXT_FILE "Labels' txt file for the chosen model"
+    ~/ec100n/label/labels.txt
+    FILEPATH)
+
 USER_OPTION(${use_case}_ANCHOR_1 "First anchor array estimated during training."
-    "{38, 77, 47, 97, 61, 126}"
+    "{7, 7, 14, 14, 37, 30}"
     STRING)
 
 USER_OPTION(${use_case}_ANCHOR_2 "Second anchor array estimated during training."
-    "{14, 26, 19, 37, 28, 55 }"
+    "{921, 65, 79, 77, 152, 167}"
     STRING)
 
 USER_OPTION(${use_case}_CHANNELS_IMAGE_DISPLAYED "Channels' image displayed on the LCD. Select 1 if grayscale, 3 if RGB."
@@ -41,10 +49,20 @@ USER_OPTION(${use_case}_CHANNELS_IMAGE_DISPLAYED "Channels' image displayed on t
 generate_images_code("${${use_case}_FILE_PATH}"
                      ${SRC_GEN_DIR}
                      ${INC_GEN_DIR}
-                     "${${use_case}_IMAGE_SIZE}")
+                     "${${use_case}_IMAGE_SIZE_WIDTH}"
+                     "${${use_case}_IMAGE_SIZE_HEIGHT}")
+
+# Generate labels file
+set(${use_case}_LABELS_CPP_FILE Labels)
+generate_labels_code(
+    INPUT           "${${use_case}_LABELS_TXT_FILE}"
+    DESTINATION_SRC ${SRC_GEN_DIR}
+    DESTINATION_HDR ${INC_GEN_DIR}
+    OUTPUT_FILENAME "${${use_case}_LABELS_CPP_FILE}"
+)
 
 USER_OPTION(${use_case}_ACTIVATION_BUF_SZ "Activation buffer size for the chosen model"
-    0x00082000
+    0x00168800
     STRING)
 
 if (ETHOS_U_NPU_ENABLED)
@@ -53,13 +71,19 @@ else()
     set(DEFAULT_MODEL_PATH      ${DEFAULT_MODEL_DIR}/yolo-fastest_192_face_v4.tflite)
 endif()
 
-set(${use_case}_ORIGINAL_IMAGE_SIZE
-    ${${use_case}_IMAGE_SIZE}
+set(${use_case}_ORIGINAL_IMAGE_SIZE_WIDTH
+    ${${use_case}_IMAGE_SIZE_WIDTH}
     CACHE STRING
-    "Original image size - for the post processing step to upscale the box co-ordinates.")
+    "Original image weight - for the post processing step to upscale the box co-ordinates.")
+
+set(${use_case}_ORIGINAL_IMAGE_SIZE_HEIGHT
+    ${${use_case}_IMAGE_SIZE_HEIGHT}
+    CACHE STRING
+    "Original image height - for the post processing step to upscale the box co-ordinates.")
 
 set(EXTRA_MODEL_CODE
-    "extern const int originalImageSize = ${${use_case}_ORIGINAL_IMAGE_SIZE};"
+    "extern const int originalImageSizeWidth = ${${use_case}_ORIGINAL_IMAGE_SIZE_WIDTH};"
+    "extern const int originalImageSizeHeight = ${${use_case}_ORIGINAL_IMAGE_SIZE_HEIGHT};"
     "extern const int channelsImageDisplayed = ${${use_case}_CHANNELS_IMAGE_DISPLAYED};"
     "/* NOTE: anchors are different for any given input model size, estimated during training phase */"
     "extern const float anchor1[] = ${${use_case}_ANCHOR_1};"

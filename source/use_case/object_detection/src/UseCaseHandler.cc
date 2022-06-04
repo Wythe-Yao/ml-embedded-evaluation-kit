@@ -32,9 +32,13 @@ namespace app {
      * @brief           Presents inference results along using the data presentation
      *                  object.
      * @param[in]       results            Vector of detection results to be displayed.
+     * @param[in]       txtStartX          X coordinate where the txt starts on the LCD.
+     * @param[in]       txtStartY          Y coordinate where the txt starts on the LCD.
      * @return          true if successful, false otherwise.
      **/
-    static bool PresentInferenceResult(const std::vector<object_detection::DetectionResult>& results);
+    static bool PresentInferenceResult(const std::vector<object_detection::DetectionResult>& results,
+                                       uint32_t txtStartX,
+                                       uint32_t txtStartY);
 
     /**
      * @brief           Draw boxes directly on the LCD for all detected objects.
@@ -54,12 +58,15 @@ namespace app {
     {
         auto& profiler = ctx.Get<Profiler&>("profiler");
 
-        constexpr uint32_t dataPsnImgDownscaleFactor = 1;
+        constexpr uint32_t dataPsnImgDownscaleFactor = 2;
         constexpr uint32_t dataPsnImgStartX = 10;
-        constexpr uint32_t dataPsnImgStartY = 35;
+        constexpr uint32_t dataPsnImgStartY = 45;
 
         constexpr uint32_t dataPsnTxtInfStartX = 150;
         constexpr uint32_t dataPsnTxtInfStartY = 40;
+
+        constexpr uint32_t rstPsnTxtInfStartX = 175;
+        constexpr uint32_t rstPsnTxtInfStartY = dataPsnTxtInfStartY;
 
         hal_lcd_clear(COLOR_BLACK);
 
@@ -96,15 +103,16 @@ namespace app {
         const int inputImgRows = inputShape->data[YoloFastestModel::ms_inputRowsIdx];
 
         /* Set up pre and post-processing. */
-        DetectorPreProcess preProcess = DetectorPreProcess(inputTensor, true, model.IsDataSigned());
+        DetectorPreProcess preProcess = DetectorPreProcess(inputTensor, false, model.IsDataSigned());
 
         std::vector<object_detection::DetectionResult> results;
         const object_detection::PostProcessParams postProcessParams {
-            inputImgRows, inputImgCols, object_detection::originalImageSize,
+            inputImgRows, inputImgCols,
+            object_detection::originalImageSizeWidth, object_detection::originalImageSizeHeight,
             object_detection::anchor1, object_detection::anchor2
         };
         DetectorPostProcess postProcess = DetectorPostProcess(outputTensor0, outputTensor1,
-                results, postProcessParams);
+                ctx.Get<std::vector<std::string>&>("labels"), results, postProcessParams);
         do {
             /* Ensure there are no results leftover from previous inference when running all. */
             results.clear();
@@ -165,7 +173,7 @@ namespace app {
             DumpTensor(modelOutput1);
 #endif /* VERIFY_TEST_OUTPUT */
 
-            if (!PresentInferenceResult(results)) {
+            if (!PresentInferenceResult(results, rstPsnTxtInfStartX, rstPsnTxtInfStartY)) {
                 return false;
             }
 
@@ -178,8 +186,13 @@ namespace app {
         return true;
     }
 
-    static bool PresentInferenceResult(const std::vector<object_detection::DetectionResult>& results)
+    static bool PresentInferenceResult(const std::vector<object_detection::DetectionResult>& results,
+                                       uint32_t txtStartX,
+                                       uint32_t txtStartY)
     {
+        constexpr uint32_t txtYIncr = 16;  /* Row index increment. */
+        uint32_t rowIdx = txtStartY + txtYIncr;
+
         hal_lcd_set_text_color(COLOR_GREEN);
 
         /* If profiling is enabled, and the time is valid. */
@@ -187,9 +200,22 @@ namespace app {
         info("Total number of inferences: 1\n");
 
         for (uint32_t i = 0; i < results.size(); ++i) {
-            info("%" PRIu32 ") (%f) -> %s {x=%d,y=%d,w=%d,h=%d}\n", i,
-                results[i].m_normalisedVal, "Detection box:",
+            info("%" PRIu32 ") (%f) -> (%" PRIu32 ")%s {x=%d,y=%d,w=%d,h=%d}\n", i,
+                results[i].m_normalisedVal, results[i].m_labelIdx, results[i].m_labelStr.c_str(),
                 results[i].m_x0, results[i].m_y0, results[i].m_w, results[i].m_h );
+
+            unsigned char x1 = (unsigned char)results[i].m_normalisedVal;
+            unsigned char x2 = (unsigned char)(results[i].m_normalisedVal / 0.1);
+            unsigned char x3 = (unsigned char)(results[i].m_normalisedVal / 0.01) % 10;
+
+            std::string resultStr = 
+                    std::to_string(i) + ") " +
+                    std::to_string(x1) + "." + std::to_string(x2) + std::to_string(x3) + 
+                    "->" + results[i].m_labelStr;
+            hal_lcd_display_text(
+                    resultStr.c_str(), resultStr.size(),
+                    txtStartX, rowIdx, 0);
+            rowIdx += txtYIncr;
         }
 
         return true;
@@ -206,20 +232,20 @@ namespace app {
             /* Top line. */
             hal_lcd_display_box(imgStartX + result.m_x0/imgDownscaleFactor,
                     imgStartY + result.m_y0/imgDownscaleFactor,
-                    result.m_w/imgDownscaleFactor, lineThickness, COLOR_GREEN);
+                    result.m_w/imgDownscaleFactor, lineThickness, COLOR_RED);
             /* Bot line. */
             hal_lcd_display_box(imgStartX + result.m_x0/imgDownscaleFactor,
                     imgStartY + (result.m_y0 + result.m_h)/imgDownscaleFactor - lineThickness,
-                    result.m_w/imgDownscaleFactor, lineThickness, COLOR_GREEN);
+                    result.m_w/imgDownscaleFactor, lineThickness, COLOR_RED);
 
             /* Left line. */
             hal_lcd_display_box(imgStartX + result.m_x0/imgDownscaleFactor,
                     imgStartY + result.m_y0/imgDownscaleFactor,
-                    lineThickness, result.m_h/imgDownscaleFactor, COLOR_GREEN);
+                    lineThickness, result.m_h/imgDownscaleFactor, COLOR_RED);
             /* Right line. */
             hal_lcd_display_box(imgStartX + (result.m_x0 + result.m_w)/imgDownscaleFactor - lineThickness,
                     imgStartY + result.m_y0/imgDownscaleFactor,
-                    lineThickness, result.m_h/imgDownscaleFactor, COLOR_GREEN);
+                    lineThickness, result.m_h/imgDownscaleFactor, COLOR_RED);
         }
     }
 
